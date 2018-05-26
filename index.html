@@ -717,6 +717,16 @@
 				</section>
 
 				<section data-markdown>
+					## 題名が正規表現にマッチするチケットを探す
+
+					1万件の未完了チケットの中から、題名が `/(交通|宿泊)/i` にマッチするチケットを探す
+					``` bash
+					for OFFSET in `seq 0 100 10000`; do curl --user ログインID:ユーザー名 "https://ホスト名/issues.json?limit=100&offset=$OFFSET" | jq -r '.issues[] | select(.subject | test("交通|宿泊"; "i")) | "\(.tracker["name"]) #\(.id) - \(.subject)"'; done
+					```
+					※すごく遅いです
+				</section>
+
+				<section data-markdown>
 					# Redmine API 利用TIPS
 				</section>
 
