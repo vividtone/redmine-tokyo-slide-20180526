@@ -1,0 +1,863 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>プログラミング無しで使ってみるREST API</title>
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/maeda.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<p style="font-size: 120%;">
+						<strong>Redmineをちょっと便利に!<br>
+						プログラミング無しで使ってみるREST API</strong>
+					</p>
+					<br>
+					<p>
+						前田剛<br>
+						(ファーエンドテクノロジー株式会社)
+					</p>
+					<small>2018/05/26 redmine.tokyo</small>
+				</section>
+
+				<section data-markdown>
+					プログラミングをせずに、コマンドラインツールの組み合わせでRedmineのAPIにアクセスしてみます。
+
+					* **curl**: HTTPリクエストを行う
+					* **jq**: JSONデータを整形・加工する
+				</section>
+
+				<section>
+					<h1>RedmineのREST API</h1>
+				</section>
+
+				<section>
+					<h2>REST APIとは</h2>
+					<p>
+						Redmineが持つデータに、外部から<br>
+						（Web UIを経由せず）アクセスできる仕組み。
+					</p>
+				</section>
+
+				<section>
+					<h2>アクセス方法</h2>
+					<p>HTTPでリクエストすると、XMLまたはJSON形式のレスポンスが帰ってくる</p>
+					<img src="images/rest-api-diagram.png">
+				</section>
+
+				<section data-markdown>
+					## REST APIの何がうれしい?
+
+					* 他システムからRedmineを操作できる
+					  - 自動化、チャットボットなど
+					* Web UIの操作ではできないことが実現できる
+				</section>
+
+				<section data-markdown>
+					## APIを利用したツール例
+
+					1. Redmineチケット★一括★
+					2. Redmine Notifier
+				</section>
+
+				<section data-markdown>
+					**①Redmineチケット★一括★**
+
+					Excelファイルを読み込んでチケットを登録
+
+					![](images/ticket-ikkatsu-exec.png)
+
+					https://www.vector.co.jp/soft/winnt/util/se503347.html
+				</section>
+
+				<section data-markdown>
+					**②Redmine Notifier**
+
+					チケットの更新をデスクトップに通知
+
+					![](images/redmine-notifier.png)
+
+					https://github.com/emsk/redmine-notifier
+				</section>
+
+				<section>
+					<h1>REST APIの利用準備</h1>
+				</section>
+
+				<section data-markdown>
+					## 前提条件
+
+					* コマンドラインからAPIを利用してみます
+					* 扱いやすいJSON形式を利用します
+					* APIへのアクセスを行う端末のOSは **Ubuntu** または **macOS** を想定しています
+					* **Windows**の人は **Windows Subsystem for Linux** をインストールするなどしてください
+				</section>
+
+				<section data-markdown>
+					## REST APIを有効にする
+
+					「管理」→「設定」→「API」タブの「**RESTによるWebサービスを有効にする**」をON
+
+					![](images/enable-rest-api.png)
+				</section>
+
+				<section data-markdown>
+					## jq をPCにインストールする
+
+					jq はJSON形式のテキストを整形・加工するツール。APIで取得したデータの処理に使う。
+
+					### ubuntu:
+
+					``` bash
+					sudo apt-get install jq
+					```
+
+					### macOS:
+
+					``` bash
+					brew install jq
+					```
+				</section>
+
+				<section data-markdown>
+					## APIにアクセスできるかテスト
+
+					``` bash
+					curl --user ログインID:パスワード 'http://redmine.test/issues.json?limit=1' | jq .
+					```
+				</section>
+
+				<section data-markdown>
+					こんな感じの画面が出ればOK
+
+					![](images/test-api.png)
+				</section>
+
+				<section>
+					<h1>APIで遊んでみる</h1>
+				</section>
+
+				<section data-markdown>
+					## ユーザー一覧の取得
+
+					Redmineのユーザー一覧をJSON形式で取得する
+					``` bash
+					curl --user admin:パスワード 'http://redmine.test/users.json?limit=100'
+					```
+				</section>
+
+				<section data-markdown>
+					``` json
+					{"users":[{"id":1,"login":"admin","firstname":"Redmine","lastname":"Admin","mail":"admin@somenet.foo","created_on":"2006-07-19T17:12:21Z","last_login_on":"2018-05-25T20:24:22Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":3,"login":"dlopper","firstname":"Dave","lastname":"Lopper","mail":"dlopper@somenet.foo","created_on":"2006-07-19T17:33:19Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":22,"login":"example","firstname":"Some","lastname":"One","mail":"someone@example.jp","created_on":"2018-05-24T13:40:12Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":2,"login":"jsmith","firstname":"John","lastname":"Smith","mail":"jsmith@somenet.foo","created_on":"2006-07-19T17:32:09Z","last_login_on":"2006-07-19T20:42:15Z","custom_fields":[{"id":4,"name":"Phone number","value":"01 42 50 00 00"},{"id":5,"name":"Money","value":""}]},{"id":8,"login":"miscuser8","firstname":"User","lastname":"Misc","mail":"miscuser8@foo.bar","created_on":"2006-07-19T17:33:19Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":9,"login":"miscuser9","firstname":"User","lastname":"Misc","mail":"miscuser9@foo.bar","created_on":"2006-07-19T17:33:19Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":4,"login":"rhill","firstname":"Robert","lastname":"Hill","mail":"rhill@somenet.foo","created_on":"2006-07-19T17:34:07Z","custom_fields":[{"id":4,"name":"Phone number","value":"01 23 45 67 89"},{"id":5,"name":"Money","value":""}]},{"id":7,"login":"someone","firstname":"Some","lastname":"One","mail":"someone@foo.bar","created_on":"2006-07-19T17:33:19Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":15,"login":"user0001","firstname":"Redmine","lastname":"Admin","mail":"user0001@example.com","created_on":"2018-05-24T13:30:18Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":16,"login":"user0002","firstname":"Dave","lastname":"Lopper","mail":"user0002@example.com","created_on":"2018-05-24T13:30:18Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":17,"login":"user0003","firstname":"John","lastname":"Smith","mail":"user0003@example.com","created_on":"2018-05-24T13:30:18Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":18,"login":"user0004","firstname":"User","lastname":"Misc","mail":"user0004@example.com","created_on":"2018-05-24T13:30:18Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":19,"login":"user0005","firstname":"User","lastname":"Misc","mail":"user0005@example.com","created_on":"2018-05-24T13:30:18Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":20,"login":"user0006","firstname":"Robert","lastname":"Hill","mail":"user0006@example.com","created_on":"2018-05-24T13:30:18Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]},{"id":21,"login":"user0007","firstname":"Some","lastname":"One","mail":"user0007@example.com","created_on":"2018-05-24T13:30:18Z","custom_fields":[{"id":4,"name":"Phone number","value":""},{"id":5,"name":"Money","value":""}]}],"total_count":15,"offset":0,"limit":100}
+					```
+				</section>
+
+				<section data-markdown>
+					## jq で見やすく整形
+
+					``` bash
+					curl --user admin:パスワード 'http://redmine.test/users.json?limit=100' | jq .
+					```
+				</section>
+
+				<section data-markdown>
+					``` json
+					{
+					  "users": [
+					    {
+					      "id": 1,
+					      "login": "admin",
+					      "firstname": "Redmine",
+					      "lastname": "Admin",
+					      "mail": "admin@somenet.foo",
+					      "created_on": "2006-07-19T17:12:21Z",
+					      "last_login_on": "2018-05-25T20:33:44Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 3,
+					      "login": "dlopper",
+					      "firstname": "Dave",
+					      "lastname": "Lopper",
+					      "mail": "dlopper@somenet.foo",
+					      "created_on": "2006-07-19T17:33:19Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 22,
+					      "login": "example",
+					      "firstname": "Some",
+					      "lastname": "One",
+					      "mail": "someone@example.jp",
+					      "created_on": "2018-05-24T13:40:12Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 2,
+					      "login": "jsmith",
+					      "firstname": "John",
+					      "lastname": "Smith",
+					      "mail": "jsmith@somenet.foo",
+					      "created_on": "2006-07-19T17:32:09Z",
+					      "last_login_on": "2006-07-19T20:42:15Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": "01 42 50 00 00"
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 8,
+					      "login": "miscuser8",
+					      "firstname": "User",
+					      "lastname": "Misc",
+					      "mail": "miscuser8@foo.bar",
+					      "created_on": "2006-07-19T17:33:19Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 9,
+					      "login": "miscuser9",
+					      "firstname": "User",
+					      "lastname": "Misc",
+					      "mail": "miscuser9@foo.bar",
+					      "created_on": "2006-07-19T17:33:19Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 4,
+					      "login": "rhill",
+					      "firstname": "Robert",
+					      "lastname": "Hill",
+					      "mail": "rhill@somenet.foo",
+					      "created_on": "2006-07-19T17:34:07Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": "01 23 45 67 89"
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 7,
+					      "login": "someone",
+					      "firstname": "Some",
+					      "lastname": "One",
+					      "mail": "someone@foo.bar",
+					      "created_on": "2006-07-19T17:33:19Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 15,
+					      "login": "user0001",
+					      "firstname": "Redmine",
+					      "lastname": "Admin",
+					      "mail": "user0001@example.com",
+					      "created_on": "2018-05-24T13:30:18Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 16,
+					      "login": "user0002",
+					      "firstname": "Dave",
+					      "lastname": "Lopper",
+					      "mail": "user0002@example.com",
+					      "created_on": "2018-05-24T13:30:18Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 17,
+					      "login": "user0003",
+					      "firstname": "John",
+					      "lastname": "Smith",
+					      "mail": "user0003@example.com",
+					      "created_on": "2018-05-24T13:30:18Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 18,
+					      "login": "user0004",
+					      "firstname": "User",
+					      "lastname": "Misc",
+					      "mail": "user0004@example.com",
+					      "created_on": "2018-05-24T13:30:18Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 19,
+					      "login": "user0005",
+					      "firstname": "User",
+					      "lastname": "Misc",
+					      "mail": "user0005@example.com",
+					      "created_on": "2018-05-24T13:30:18Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 20,
+					      "login": "user0006",
+					      "firstname": "Robert",
+					      "lastname": "Hill",
+					      "mail": "user0006@example.com",
+					      "created_on": "2018-05-24T13:30:18Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    },
+					    {
+					      "id": 21,
+					      "login": "user0007",
+					      "firstname": "Some",
+					      "lastname": "One",
+					      "mail": "user0007@example.com",
+					      "created_on": "2018-05-24T13:30:18Z",
+					      "custom_fields": [
+					        {
+					          "id": 4,
+					          "name": "Phone number",
+					          "value": ""
+					        },
+					        {
+					          "id": 5,
+					          "name": "Money",
+					          "value": ""
+					        }
+					      ]
+					    }
+					  ],
+					  "total_count": 15,
+					  "offset": 0,
+					  "limit": 100
+					}
+					```
+				</section>
+
+				<section data-markdown>
+					## ユーザー一覧のJSONをCSVに変換
+
+					``` bash
+					curl --user admin:パスワード http://redmine.test/users.json | jq -r '.users[] | [.login, .mail, .firstname, .lastname] | @csv'
+					```
+
+					1. users[] の値を取り出して、
+					2. 各ユーザーのデータから必要な値を取り出して配列に変換して、
+					3. CSVに変換
+				</section>
+
+				<section data-markdown>
+					``` nohighlight
+					"admin","admin@somenet.foo","Redmine","Admin"
+					"dlopper","dlopper@somenet.foo","Dave","Lopper"
+					"jsmith","jsmith@somenet.foo","John","Smith"
+					"miscuser8","miscuser8@foo.bar","User","Misc"
+					"miscuser9","miscuser9@foo.bar","User","Misc"
+					"rhill","rhill@somenet.foo","Robert","Hill"
+					"someone","someone@foo.bar","Some","One"
+					```
+					フォーマット: ログインID,メールアドレス,名,姓
+				</section>
+
+				<section data-markdown>
+					## ユーザーを登録する
+
+					ファイル newuser.json を用意して
+					``` nohighlight
+					{
+					  "user": {
+					    "login": "maeda",
+					    "mail": "maeda@example.com",
+					    "firstname": "剛",
+					    "lastname": "前田",
+					    "password": "I3JlZG1pbmV0"
+					  }
+					}
+					```
+
+					実行
+					``` bash
+					cat newuser.json | curl 'http://redmine.test/users.json' --user admin:パスワード --header 'Content-type: application/json' --data @-
+					```
+				</section>
+
+				<section data-markdown>
+					## ユーザーをCSVから一括登録する
+
+					ファイル user.csv を用意して
+					``` nohighlight
+					user0001,foo@example.com,Joe,Bloggs,HiaH4JJd
+					user0002,bar@example.com,Jane,Public,9iQYyLn5
+					user0003,baz@example.com,Chris,Wong,dG9EFggG
+					```
+
+					実行
+					``` bash
+					cat /tmp/users.csv | while read LINE
+					do
+					  echo $LINE | jq -R 'gsub("\"";"") | split(",") | {"user": {"login": .[0], "mail": .[1], "firstname": .[2], "lastname": .[3], "password": .[4]}}' | curl -v 'http://redmine.test/users.json' --user admin:パスワード --header 'Content-type: application/json' --data @-
+					done
+					```
+				</section>
+
+				<section data-markdown>
+					1. 1行ずつ読み取りコマンド実行: **`cat ... while ...`**
+					2. ダブルクォーテーションを削除: **`gsub("\"";"")`**
+					3. コンマで分割: **`split(",")`**
+					4. JSONに変換: **`{"user": {"login": .[0], ...}}`**
+					5. 標準入力からJSONを受け取りAPIを呼び出してユーザー登録: **`curl ...`**
+
+					``` bash
+					cat /tmp/users.csv | while read LINE
+					do
+					  echo $LINE | jq -R 'gsub("\"";"") | split(",") | {"user": {"login": .[0], "mail": .[1], "firstname": .[2], "lastname": .[3], "password": .[4]}}' | curl 'http://redmine.test/users.json' --user admin:パスワード --header 'Content-type: application/json' --data @-
+					done
+					```
+				</section>
+
+				<section data-markdown>
+					## チケット操作
+
+					``` bash
+					# チケット一覧取得
+					curl http://ホスト名/issues.json --user ログインID:パスワード
+					# 個別のチケット取得
+					curl http://ホスト名/issues/1.json --user ログインID:パスワード
+					# チケット作成
+					curl http://ホスト名/issues.json --user ログインID:パスワード --header 'Content-type: application/json' --data '{"issue": {"project_id": 1, "tracker_id": 1, "subject": "件名", "description": "説明"}}'
+					# チケット更新
+					curl http://ホスト名/issues/5.json --user ログインID:パスワード --request 'PUT' --header 'Content-type: application/json' --data '{"issue": {"subject": "変更後件名", "description": "変更後説明"}}'
+					# チケット削除
+					curl http://ホスト名/issues/16.json --user ログインID:パスワード --request 'DELETE'
+					```
+				</section>
+
+				<section data-markdown>
+					## 指定したチケットを取得する
+
+					``` bash
+					curl --user ログインID:パスワード 'http://redmine.test/issues/1.json' | jq .
+					```
+				</section>
+
+				<section data-markdown>
+					``` json
+					{
+					  "issue": {
+					    "id": 1,
+					    "project": {
+					      "id": 1,
+					      "name": "eCookbook"
+					    },
+					    "tracker": {
+					      "id": 1,
+					      "name": "Bug"
+					    },
+					    "status": {
+					      "id": 1,
+					      "name": "New"
+					    },
+					    "priority": {
+					      "id": 4,
+					      "name": "Low"
+					    },
+					    "author": {
+					      "id": 2,
+					      "name": "John Smith"
+					    },
+					    "category": {
+					      "id": 1,
+					      "name": "Printing"
+					    },
+					    "subject": "Cannot print recipes",
+					    "description": "Unable to print recipes",
+					    "start_date": "2018-05-22",
+					    "due_date": "2018-06-02",
+					    "done_ratio": 0,
+					    "spent_hours": 154.25,
+					    "total_spent_hours": 154.25,
+					    "custom_fields": [
+					      {
+					        "id": 2,
+					        "name": "Searchable field",
+					        "value": "125"
+					      },
+					      {
+					        "id": 1,
+					        "name": "Database",
+					        "value": ""
+					      },
+					      {
+					        "id": 6,
+					        "name": "Float field",
+					        "value": "2.1"
+					      },
+					      {
+					        "id": 8,
+					        "name": "Custom date",
+					        "value": "2009-12-01"
+					      },
+					      {
+					        "id": 9,
+					        "name": "Project 1 cf",
+					        "value": ""
+					      }
+					    ],
+					    "created_on": "2018-05-20T05:54:42Z",
+					    "updated_on": "2018-05-22T05:54:42Z"
+					  }
+					}
+					```
+				</section>
+
+				<section data-markdown>
+					## チケットを1行のテキストに変換
+
+					コマンド
+
+					``` bash
+					curl --user ログインID:パスワード 'http://redmine.test/issues/1.json?limit=100' | jq '.issue | "\(.tracker.name) #\(.id) - \(.subject) (\(.status.name)) http://redmine.test/issues/\(.id)" | @text'
+					```
+
+					結果
+					``` nohighlight
+					Bug #1 - Cannot print recipes (New) http://redmine.test/issues/1
+					```
+				</section>
+
+				<section data-markdown>
+					### 開始日が今日以前のチケットを抽出
+
+					コマンド
+					``` bash
+					curl --user ログインID:パスワード "http://redmine.test/issues.json?limit=100&start_date=<=`date +%Y-%m-%d`&sort=start_date" | jq -r '.issues[] | "\(.tracker["name"]) #\(.id) - \(.subject) (\(.start_date))" | @text'
+					```
+
+					結果
+					``` nohighlight
+					Bug #3 - Error 281 when updating a recipe (2018-05-08)
+					Bug #7 - Issue due today (2018-05-13)
+					Feature request #2 - Add ingredients categories (2018-05-21)
+					Bug #1 - Cannot print recipes (2018-05-22)
+					Bug #6 - Issue of a private subproject (2018-05-23)
+					Bug #9 - Blocked Issue (2018-05-23)
+					Bug #10 - Issue Doing the Blocking (2018-05-23)
+					```
+				</section>
+
+				<section data-markdown>
+					## 未完了で、自分が担当で、更新日が7日以上前のチケットから1件をランダムに表示
+
+					コマンド
+					``` bash
+					curl --user ログインID:パスワード "http://redmine.test/issues.json?limit=100&assigned_to_id=me&updated_on=<=`date -v-7d +%Y-%m-%d`" | jq -r '.issues[] | "\(.tracker.name) #\(.id) - \(.subject) (\(.updated_on)) http://redmine.test/issues/\(.id)" | @text' | python -c 'import sys, random; print(random.choice(sys.stdin.readlines()));'
+					```
+
+					結果
+					``` nohighlight
+					Bug #3 - Error 281 when updating a recipe (2006-07-19T19:07:27Z) http://redmine.test/issues/3
+					```
+				</section>
+
+				<section data-markdown>
+					# Redmine API 利用TIPS
+				</section>
+
+				<section data-markdown>
+					## レスポンスはXMLかJSON
+
+					* URLの拡張子でXMLかJSONか決まる
+					* コマンドラインで使うなら **JSON** がおすすめ。 **jq** が強力で、また	登録用データを作るのもXMLより楽
+
+					``` bash
+					# XML
+					curl --user ログインID:パスワード 'http://redmine.test/issues/1.xml'
+
+					# JSON
+					curl --user ログインID:パスワード 'http://redmine.test/issues/1.json'
+					```
+				</section>
+
+				<section data-markdown>
+					## 1回のリクエストで取得できるのは最大100件
+
+					* デフォルトは25件。URLのパラメータ `limit` を指定して増やせるが、上限は100
+					* それ以上のデータを取得するには `offset` の値を変えながら複数のリクエストを行う
+
+					```
+					# 0..99
+					curl --user admin:パスワード 'http://redmine.test/users.json?limit=100'
+					# 100..199
+					curl --user admin:パスワード 'http://redmine.test/users.json?limit=100&offset=100'
+					# 200..299
+					curl --user admin:パスワード 'http://redmine.test/users.json?limit=100&offset=200'
+					```
+				</section>
+
+				<section data-markdown>
+					offsetを 0 から 900 まで100ずつ増やしながら10回のリクエストを行う例
+
+					```
+					for OFFSET in `seq 0 100 900`; do curl --user admin:パスワード "http://redmine.test/users.json?limit=100&offset=$OFFSET" | jq -r '.users[] | [.login, .mail, .firstname, .lastname] | @csv'; done > support-users.csv
+					```
+				</section>
+
+				<section data-markdown>
+					## 一部のオブジェクトはシステム管理者権限が必要
+
+					ユーザー、グループ、カスタムフィールドの一覧など
+				</section>
+
+				<section data-markdown>
+					## デバッグには curl の `-v` オプションが便利
+
+					ヘッダが見えるのでRedmineサーバとの通信で何が起こっているか把握しやすい
+
+					``` shell
+					# システム管理者でないユーザーがユーザーの一覧にアクセス
+					$ curl -v --user ログインID:パスワード "http://redmine.test/users.json"
+					.
+					(中略)
+					.
+					< HTTP/1.1 403 Forbidden
+					< X-Frame-Options: SAMEORIGIN
+					< X-XSS-Protection: 1; mode=block
+					< X-Content-Type-Options: nosniff
+					< Content-Type: application/json
+					.
+					.
+					```
+				</section>
+
+				<section>
+					<h2>情報源</h2>
+					<dl>
+						<dt>Redmine API</dt>
+						<dd>
+							<a href="http://www.redmine.org/projects/redmine/wiki/Rest_api">http://www.redmine.org/projects/redmine/wiki/Rest_api</a><br>
+							ドキュメント化されていない機能が一部ある
+						</dd>
+						<dt>jq</dt>
+						<dd>
+							<a href="https://stedolan.github.io/jq/manual/">https://stedolan.github.io/jq/manual/</a>
+						</dd>
+					</dl>
+				</section>
+
+				<section data-markdown>
+					# まとめ
+				</section>
+
+				<section data-markdown>
+					* curl と jq を使えば、プログラミング無しでAPIを活用できる。案外簡単!
+					* Web UIでできないこともAPIを使えば実現できる場合あり
+					* ちょっとした自動化にも使えそう
+
+					**APIでRedmineをちょっと便利に!**
+				</section>
+
+				<section>
+					<h2>ありがとうございました</h2>
+					<hr>
+					<table>
+						<tr>
+							<td width="200px;">
+								<img src="images/maeda.jpg" style="width: 200px; vertical-align: middle;">
+							</td>
+							<td>
+								<strong>前田剛 (<a href="https://twitter.com/g_maeda">@g_maeda</a>)</strong><br>
+								ファーエンドテクノロジー株式会社<br>代表取締役
+							</td>
+						</tr>
+					</table>
+					<br>
+					<ul>
+						<li><a href="http://redmine.jp/">Redmine.JP</a>というサイトを運営してます
+						<li>「<a href="https://www.farend.co.jp/blog/2016/12/redmine-book-5/">入門Redmine</a>」という本を書きました
+						<li>Redmineのコミッターとして開発を手伝っています
+					</ul>
+				</section>
+
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info about config & dependencies:
+			// - https://github.com/hakimel/reveal.js#configuration
+			// - https://github.com/hakimel/reveal.js#dependencies
+			Reveal.initialize({
+				history: true,
+				slideNumber: true,
+				width: 1440,
+				height: 810,
+
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+		</script>
+	</body>
+</html>
