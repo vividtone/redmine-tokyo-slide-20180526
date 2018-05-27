@@ -767,6 +767,24 @@
 				</section>
 
 				<section data-markdown>
+					## 認証はbasic認証またはAPIキーで行う
+
+					### basic認証
+
+					``` bash
+					curl --user ログインID:パスワード 'http://redmine.test/issues.json'
+					```
+
+					### APIキー
+
+					``` bash
+					curl --header 'X-Redmine-API-Key: APIキー' 'http://redmine.test/issues.json'
+					```
+
+					APIキーは「個人設定」画面のサイドバー内「APIアクセスキー」で確認する
+				</section>
+
+				<section data-markdown>
 					offsetを 0 から 900 まで100ずつ増やしながら10回のリクエストを行う例
 
 					```
